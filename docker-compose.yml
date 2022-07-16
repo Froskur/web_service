@@ -1,0 +1,77 @@
+version: '3.7'
+
+services:  
+  shared_db:
+    image: postgres
+    environment:
+      POSTGRES_DB: "route"
+      POSTGRES_USER: "shared_user"
+      POSTGRES_PASSWORD: "shared_pass"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - ./_init_db:/docker-entrypoint-initdb.d
+      - ./sqldata:/var/lib/postgresql/data      
+    ports:
+      - "5432:5432"      
+  
+  gateway_service:
+    build: ./gateway-service    
+    command: ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./gateway-service/:/app/
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URI=postgresql://shared_user:shared_pass@shared_db/route
+      - POINTS_SERVICE_HOST_URL=http://point_service:8001/api/v1/points/
+      - ROUTE_SERVICE_HOST_URL=http://route_service:8002/api/v1/routes/
+      - REPORTS_SERVICE_HOST_URL=http://report_service:8003/api/v1/reports/    
+    depends_on:
+      - "shared_db"
+    
+  point_service:
+    build: ./point-service
+    command: ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8001"]
+    volumes:
+      - ./point-service/:/app/
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URI=postgresql://shared_user:shared_pass@shared_db/route
+      - POINTS_SERVICE_HOST_URL=http://point_service:8001/api/v1/points/
+      - ROUTE_SERVICE_HOST_URL=http://route_service:8002/api/v1/routes/
+      - REPORTS_SERVICE_HOST_URL=http://report_service:8003/api/v1/reports/
+    depends_on:
+      - "shared_db"
+
+
+  route_service:
+    build: ./route-service
+    command: ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8002"]
+    volumes:
+      - ./route-service/:/app/
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URI=postgresql://shared_user:shared_pass@shared_db/route
+      - POINTS_SERVICE_HOST_URL=http://point_service:8001/api/v1/points/
+      - ROUTE_SERVICE_HOST_URL=http://route_service:8002/api/v1/routes/
+      - REPORTS_SERVICE_HOST_URL=http://report_service:8003/api/v1/reports/
+    depends_on:
+      - "shared_db"
+
+  report_service:
+    build: ./report-service
+    command: ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8003"]
+    volumes:
+      - ./report-service/:/app/
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URI=postgresql://shared_user:shared_pass@shared_db/route
+      - POINTS_SERVICE_HOST_URL=http://point_service:8001/api/v1/points/
+      - ROUTE_SERVICE_HOST_URL=http://route_service:8002/api/v1/routes/
+      - REPORTS_SERVICE_HOST_URL=http://report_service:8003/api/v1/reports/
+    depends_on:
+      - "shared_db"
+    
