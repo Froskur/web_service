@@ -33,8 +33,8 @@ async def create_route(m: RouteIn):
 @routes.post('/optimal', response_model=List[PointNew],
              description="Считаем оптимальный маршрут для набора точек. Выдача будет содержать те же точки, но в другом порядке.")
 async def optimal_route(p: List[PointNew]):
-    if not(2 <= len(p) <= 10):
-        raise HTTPException(status_code=406, detail=f"Count point needle between 2 and 10")
+    if not(2 <= len(p) <= 100):
+        raise HTTPException(status_code=406, detail=f"Count point needle between 2 and 100")
 
     return await get_optimal_track_for_route(p)
 
